@@ -15,9 +15,14 @@ class BookListModel extends ChangeNotifier {
       Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
       final String title = data["title"];
       final String author = data["author"];
-      return Book(title, author);
+      final String id = document.id;
+      return Book(id, title, author);
     }).toList();
       this.books = books;
       notifyListeners();
+    }
+
+    Future deleteBook(Book book) {
+      return FirebaseFirestore.instance.collection('books').doc(book.id).delete();
     }
 }

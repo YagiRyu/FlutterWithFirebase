@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_firebase/add_book/add_book_page.dart';
 import 'package:flutter_firebase/book_list/book_list_model.dart';
 import 'package:flutter_firebase/domain/book.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
+
+import '../edit_book/edit_book_page.dart';
 
 class BookListPage extends StatelessWidget {
 
@@ -23,9 +26,43 @@ class BookListPage extends StatelessWidget {
               }
 
               final List<Widget> widgets = books.map(
-                      (book) => ListTile(
-                        title: Text(book.title),
-                        subtitle: Text(book.author),
+                      (book) => Slidable(
+                        actionPane: SlidableDrawerActionPane(),
+                        child: ListTile(
+                          title: Text(book.title),
+                          subtitle: Text(book.author),
+                        ),
+                        secondaryActions: <Widget>[
+                          IconSlideAction(
+                            caption: "編集",
+                            color: Colors.black45,
+                            icon: Icons.edit,
+                            onTap: () async {
+                              final String? title  = await Navigator.push(
+                                context,
+                                MaterialPageRoute (
+                                    builder: (context) => UpdateBookPage(book),
+                                ),
+                              );
+                              if (title != null) {
+                                final snackBar = SnackBar(
+                                    backgroundColor: Colors.green,
+                                    content: Text("$titleを編集しました")
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                              }
+                              model.fetchBookList();
+                            },
+                          ),
+                          IconSlideAction(
+                            caption: "削除",
+                            color: Colors.red,
+                            icon: Icons.delete,
+                            onTap: () async {
+                              await showConfirmDialog(context, book, model);
+                            },
+                          )
+                        ],
                       ),
               ).toList();
               return ListView(
@@ -62,6 +99,38 @@ class BookListPage extends StatelessWidget {
         }
       ),
       ),
+    );
+  }
+
+  Future showConfirmDialog(BuildContext context, Book book, BookListModel model) {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return AlertDialog(
+          title: Text("削除の確認"),
+          content: Text("「${book.title}」を削除しますか？"),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("No")
+            ),
+            TextButton(
+                onPressed: () async {
+                  await model.deleteBook(book);
+                  Navigator.pop(context);
+                  final snackBar = SnackBar(
+                      backgroundColor: Colors.red,
+                      content: Text("「${book.title}」を追加しました")
+                  );
+                  model.fetchBookList();
+                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                },
+                child: Text("Yes")
+            )
+          ],
+        );
+      }
     );
   }
 }
